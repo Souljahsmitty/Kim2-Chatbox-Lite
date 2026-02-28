@@ -2,13 +2,19 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kimi Chat - Multi-Provider</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0a0a0a">
+    <meta name="format-detection" content="telephone=no">
+    <title>Kimi Chat</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
         }
 
         :root {
@@ -25,6 +31,15 @@
             --error: #ef4444;
             --info: #3b82f6;
             --success: #22c55e;
+            --safe-area-top: env(safe-area-inset-top);
+            --safe-area-bottom: env(safe-area-inset-bottom);
+            --safe-area-left: env(safe-area-inset-left);
+            --safe-area-right: env(safe-area-inset-right);
+        }
+
+        html {
+            height: 100%;
+            overflow: hidden;
         }
 
         body {
@@ -32,25 +47,84 @@
             background: var(--bg-primary);
             color: var(--text-primary);
             height: 100vh;
+            height: 100dvh; /* Dynamic viewport height for mobile */
             overflow: hidden;
             display: flex;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            left: 0;
+            padding-top: var(--safe-area-top);
+            padding-bottom: var(--safe-area-bottom);
+            padding-left: var(--safe-area-left);
+            padding-right: var(--safe-area-right);
         }
 
+        /* Mobile Sidebar (Slide-out drawer) */
         .sidebar {
-            width: 300px;
+            width: 280px;
             background: var(--bg-secondary);
             border-right: 1px solid var(--border);
             display: flex;
             flex-direction: column;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100%;
+            height: 100dvh;
+            z-index: 1000;
+            transform: translateX(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding-top: var(--safe-area-top);
+            padding-bottom: var(--safe-area-bottom);
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .sidebar-overlay.open {
+            opacity: 1;
+            visibility: visible;
         }
 
         .sidebar-header {
             padding: 16px;
             border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-close {
+            display: none;
+            width: 32px;
+            height: 32px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
         }
 
         .new-chat-btn {
-            width: 100%;
+            flex: 1;
             padding: 12px;
             background: transparent;
             border: 1px solid var(--border);
@@ -59,26 +133,29 @@
             cursor: pointer;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             font-size: 14px;
             transition: all 0.2s;
+            -webkit-touch-callout: none;
         }
 
-        .new-chat-btn:hover {
+        .new-chat-btn:active {
             background: var(--bg-hover);
-            border-color: var(--accent);
+            transform: scale(0.98);
         }
 
         .chat-history {
             flex: 1;
             overflow-y: auto;
             padding: 8px;
+            -webkit-overflow-scrolling: touch;
         }
 
         .chat-item {
-            padding: 10px 12px;
+            padding: 12px;
             margin: 2px 0;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
             white-space: nowrap;
@@ -87,6 +164,11 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            -webkit-touch-callout: none;
+        }
+
+        .chat-item:active {
+            background: var(--bg-tertiary);
         }
 
         .chat-item:hover, .chat-item.active {
@@ -96,8 +178,9 @@
         .sidebar-footer {
             padding: 16px;
             border-top: 1px solid var(--border);
-            max-height: 50vh;
+            max-height: 45vh;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         .settings-group {
@@ -115,19 +198,25 @@
 
         .provider-select, .model-select, .api-key-input {
             width: 100%;
-            padding: 8px 12px;
+            padding: 10px 12px;
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
             color: var(--text-primary);
-            border-radius: 6px;
-            font-size: 12px;
+            border-radius: 8px;
+            font-size: 14px;
             margin-bottom: 8px;
             font-family: inherit;
+            -webkit-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
         }
 
         .api-key-input {
             font-family: monospace;
-            font-size: 11px;
+            font-size: 12px;
         }
 
         .provider-info {
@@ -146,9 +235,16 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 12px;
+            font-size: 13px;
             color: var(--text-secondary);
             margin-top: 8px;
+            padding: 4px 0;
+        }
+
+        .compression-toggle input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--accent);
         }
 
         .mode-toggle {
@@ -159,14 +255,19 @@
 
         .mode-btn {
             flex: 1;
-            padding: 6px;
+            padding: 10px;
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
             color: var(--text-secondary);
-            border-radius: 6px;
-            font-size: 11px;
+            border-radius: 8px;
+            font-size: 13px;
             cursor: pointer;
             transition: all 0.2s;
+            -webkit-touch-callout: none;
+        }
+
+        .mode-btn:active {
+            transform: scale(0.98);
         }
 
         .mode-btn.active {
@@ -175,52 +276,133 @@
             border-color: var(--accent);
         }
 
+        /* Main Content */
         .main {
             flex: 1;
             display: flex;
             flex-direction: column;
+            width: 100%;
+            position: relative;
         }
 
         .header {
-            height: 60px;
+            height: 56px;
             border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 20px;
+            padding: 0 16px;
             background: var(--bg-secondary);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
+        .menu-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-touch-callout: none;
+        }
+
+        .menu-btn:active {
+            background: var(--bg-hover);
+        }
+
+        .header-title {
+            font-weight: 600;
+            font-size: 17px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .provider-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            -webkit-touch-callout: none;
+        }
+
+        .icon-btn:active {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            transform: scale(0.95);
+        }
+
+        /* Chat Container */
         .chat-container {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 16px;
+            padding-bottom: 120px; /* Space for input */
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
         }
 
         .welcome-screen {
-            height: 100%;
+            min-height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            padding: 40px;
+            padding: 40px 20px;
         }
 
         .welcome-title {
-            font-size: 32px;
-            font-weight: 600;
-            margin-bottom: 16px;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
             background: linear-gradient(135deg, var(--accent) 0%, #00d4aa 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+
+        .welcome-subtitle {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.5;
         }
 
         .message {
-            max-width: 800px;
-            margin: 0 auto 24px;
+            max-width: 100%;
+            margin: 0 0 20px 0;
             display: flex;
-            gap: 16px;
+            gap: 12px;
             animation: fadeIn 0.3s ease;
         }
 
@@ -246,36 +428,44 @@
 
         .message-content {
             flex: 1;
-            padding-top: 6px;
+            padding-top: 4px;
             line-height: 1.6;
-            font-size: 15px;
+            font-size: 16px;
+            min-width: 0; /* Prevent overflow */
         }
 
         .message-images {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
             gap: 8px;
             margin-bottom: 12px;
         }
 
         .message-image {
-            max-width: 100%;
-            max-height: 400px;
-            border-radius: 8px;
+            width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
             border: 1px solid var(--border);
             object-fit: cover;
             cursor: pointer;
             transition: transform 0.2s;
         }
 
-        .message-image:hover {
-            transform: scale(1.02);
+        .message-image:active {
+            transform: scale(0.98);
         }
 
+        /* Input Container - Fixed at bottom */
         .input-container {
-            padding: 20px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 16px;
+            padding-bottom: calc(12px + var(--safe-area-bottom));
             background: var(--bg-primary);
             border-top: 1px solid var(--border);
+            z-index: 50;
         }
 
         .input-wrapper {
@@ -283,8 +473,8 @@
             margin: 0 auto;
             background: var(--bg-secondary);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 14px;
+            border-radius: 16px;
+            padding: 12px;
             transition: border-color 0.2s;
         }
 
@@ -295,18 +485,27 @@
         .attachments-preview {
             display: flex;
             gap: 8px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            overflow-x: auto;
             margin-bottom: 8px;
+            padding-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .attachments-preview::-webkit-scrollbar {
+            display: none;
         }
 
         .attachment-item {
             position: relative;
-            width: 100px;
-            height: 100px;
+            width: 80px;
+            height: 80px;
             border-radius: 8px;
             overflow: hidden;
             border: 1px solid var(--border);
             background: var(--bg-tertiary);
+            flex-shrink: 0;
         }
 
         .attachment-item img {
@@ -324,8 +523,8 @@
         }
 
         .attachment-item.video svg {
-            width: 32px;
-            height: 32px;
+            width: 24px;
+            height: 24px;
             color: var(--accent);
         }
 
@@ -333,8 +532,8 @@
             position: absolute;
             top: 4px;
             right: 4px;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             background: rgba(239, 68, 68, 0.9);
             border: none;
             color: white;
@@ -343,7 +542,28 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
+            font-size: 14px;
+            -webkit-touch-callout: none;
+        }
+
+        .attachment-remove:active {
+            transform: scale(0.9);
+        }
+
+        .fetched-content {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 8px 0;
+            font-size: 13px;
+        }
+
+        .fetched-content h4 {
+            color: var(--accent);
+            margin-bottom: 6px;
+            font-size: 11px;
+            text-transform: uppercase;
         }
 
         .message-input {
@@ -351,12 +571,13 @@
             background: transparent;
             border: none;
             color: var(--text-primary);
-            font-size: 15px;
+            font-size: 16px;
             resize: none;
             outline: none;
             min-height: 24px;
-            max-height: 200px;
+            max-height: 120px;
             font-family: inherit;
+            line-height: 1.5;
         }
 
         .input-footer {
@@ -364,57 +585,41 @@
             justify-content: space-between;
             align-items: center;
             margin-top: 8px;
+            gap: 8px;
         }
 
         .input-actions {
             display: flex;
             gap: 8px;
             align-items: center;
-        }
-
-        .icon-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            border: none;
-            background: transparent;
-            color: var(--text-secondary);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .icon-btn:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
+            flex: 1;
         }
 
         .url-fetch-btn {
             display: flex;
             align-items: center;
             gap: 6px;
-            padding: 6px 12px;
+            padding: 8px 12px;
             background: var(--bg-tertiary);
             border: 1px solid var(--border);
             color: var(--text-secondary);
-            border-radius: 6px;
-            font-size: 12px;
+            border-radius: 8px;
+            font-size: 13px;
             cursor: pointer;
             transition: all 0.2s;
+            -webkit-touch-callout: none;
+            white-space: nowrap;
         }
 
-        .url-fetch-btn:hover {
+        .url-fetch-btn:active {
             background: var(--bg-hover);
-            color: var(--text-primary);
-            border-color: var(--info);
+            transform: scale(0.98);
         }
 
         .send-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
             border: none;
             background: var(--accent);
             color: white;
@@ -422,21 +627,31 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.2s;
+            -webkit-touch-callout: none;
         }
 
-        .send-btn:hover:not(:disabled) { background: var(--accent-hover); }
-        .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .send-btn:active:not(:disabled) {
+            background: var(--accent-hover);
+            transform: scale(0.95);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
         .thinking {
             display: flex;
             gap: 4px;
             align-items: center;
             color: var(--text-secondary);
+            padding: 8px 0;
         }
 
         .thinking-dot {
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
             background: var(--accent);
             border-radius: 50%;
             animation: bounce 1.4s infinite ease-in-out both;
@@ -454,20 +669,27 @@
             background: var(--bg-tertiary);
             padding: 2px 6px;
             border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 14px;
+            word-break: break-all;
         }
 
         pre {
             background: var(--bg-tertiary);
-            padding: 16px;
+            padding: 12px;
             border-radius: 8px;
             overflow-x: auto;
             margin: 12px 0;
             border: 1px solid var(--border);
+            -webkit-overflow-scrolling: touch;
         }
 
-        pre code { background: none; padding: 0; }
+        pre code { 
+            background: none; 
+            padding: 0; 
+            font-size: 13px;
+            line-height: 1.5;
+        }
 
         .hidden { display: none !important; }
 
@@ -483,73 +705,44 @@
             justify-content: center;
             z-index: 2000;
             cursor: zoom-out;
+            padding: 20px;
         }
 
         .image-lightbox img {
-            max-width: 95%;
-            max-height: 95%;
+            max-width: 100%;
+            max-height: 100%;
             object-fit: contain;
-        }
-
-        .fetched-content {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border);
             border-radius: 8px;
-            padding: 12px;
-            margin: 8px 0;
-            font-size: 13px;
-        }
-
-        .fetched-content h4 {
-            color: var(--accent);
-            margin-bottom: 8px;
-            font-size: 12px;
-            text-transform: uppercase;
         }
 
         .token-warning {
             background: rgba(245, 158, 11, 0.1);
             border: 1px solid var(--warning);
             color: var(--warning);
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            margin-bottom: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-top: 12px;
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-wrap: wrap;
         }
 
         .continue-btn {
             background: var(--accent);
             color: white;
             border: none;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 12px;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
             cursor: pointer;
             margin-left: auto;
+            -webkit-touch-callout: none;
         }
 
-        .provider-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 2px 8px;
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-            font-size: 11px;
-            color: var(--text-secondary);
-            margin-left: 8px;
-        }
-
-        .save-key-toggle {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-            color: var(--text-secondary);
-            margin-top: 6px;
+        .continue-btn:active {
+            background: var(--accent-hover);
         }
 
         .video-processing {
@@ -559,7 +752,7 @@
             right: 4px;
             background: rgba(0,0,0,0.8);
             color: var(--accent);
-            font-size: 10px;
+            font-size: 9px;
             padding: 2px 4px;
             border-radius: 4px;
             text-align: center;
@@ -575,13 +768,114 @@
             margin-left: 6px;
             font-weight: 600;
         }
+
+        /* iOS-specific optimizations */
+        @supports (-webkit-touch-callout: none) {
+            .message-input {
+                font-size: 16px; /* Prevents zoom on focus */
+            }
+            
+            .input-container {
+                padding-bottom: max(12px, env(safe-area-inset-bottom));
+            }
+        }
+
+        /* Pull to refresh indicator */
+        .pull-indicator {
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-secondary);
+            font-size: 13px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .pull-indicator.visible {
+            opacity: 1;
+        }
+
+        /* Tablet and Desktop */
+        @media (min-width: 768px) {
+            .sidebar {
+                position: relative;
+                transform: none;
+                width: 300px;
+            }
+
+            .sidebar-overlay {
+                display: none !important;
+            }
+
+            .sidebar-close {
+                display: none !important;
+            }
+
+            .menu-btn {
+                display: none;
+            }
+
+            .chat-container {
+                padding: 20px;
+                padding-bottom: 140px;
+            }
+
+            .welcome-title {
+                font-size: 32px;
+            }
+
+            .message {
+                max-width: 800px;
+                margin: 0 auto 24px;
+            }
+
+            .input-container {
+                padding: 20px;
+            }
+
+            .attachment-item {
+                width: 100px;
+                height: 100px;
+            }
+        }
+
+        /* Landscape phone optimization */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .header {
+                height: 48px;
+            }
+
+            .welcome-title {
+                font-size: 24px;
+            }
+
+            .input-container {
+                padding: 8px 16px;
+            }
+        }
+
+        /* Dark mode optimization for OLED */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #000000;
+            }
+        }
     </style>
 </head>
 <body>
-    <aside class="sidebar">
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+    
+    <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <button class="new-chat-btn" onclick="startNewChat()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button class="sidebar-close" id="sidebarClose" onclick="toggleSidebar()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <button class="new-chat-btn" onclick="startNewChat(); toggleSidebar();">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
@@ -593,21 +887,21 @@
             <div class="settings-group">
                 <label class="settings-label">API Provider</label>
                 <select class="provider-select" id="providerSelect" onchange="updateProvider()">
-                    <option value="cloudflare">Cloudflare Proxy (Your Worker)</option>
+                    <option value="cloudflare">Cloudflare Proxy</option>
                     <option value="nvidia">NVIDIA NIM (Free) <span class="free-badge">FREE</span></option>
                     <option value="openrouter">OpenRouter (Free Tier)</option>
                     <option value="routway">Routway.ai (Free)</option>
-                    <option value="direct">Moonshot Direct (Paid)</option>
+                    <option value="direct">Moonshot Direct</option>
                 </select>
                 <div class="provider-info" id="providerInfo">
-                    Uses your Cloudflare Worker. No API key needed in browser.
+                    Uses your Cloudflare Worker. No API key needed.
                 </div>
             </div>
 
-            <div class="settings-group">
+            <div class="settings-group" id="apiKeyGroup" style="display: none;">
                 <label class="settings-label">API Key</label>
-                <input type="password" class="api-key-input" id="apiKey" placeholder="Enter API key (if required)">
-                <label class="save-key-toggle">
+                <input type="password" class="api-key-input" id="apiKey" placeholder="Enter API key">
+                <label class="compression-toggle">
                     <input type="checkbox" id="saveKey" checked>
                     <span>Save key locally</span>
                 </label>
@@ -617,8 +911,6 @@
                 <label class="settings-label">Model</label>
                 <select class="model-select" id="modelSelect">
                     <option value="kimi-k2.5">kimi-k2.5</option>
-                    <option value="moonshotai/kimi-k2.5">moonshotai/kimi-k2.5 (NVIDIA)</option>
-                    <option value="moonshotai/kimi-k2-instruct">kimi-k2-instruct (NVIDIA)</option>
                 </select>
             </div>
 
@@ -642,7 +934,7 @@
                 <label class="settings-label">Compression</label>
                 <label class="compression-toggle">
                     <input type="checkbox" id="enableCompression" checked>
-                    <span>Enable image compression</span>
+                    <span>Compress images</span>
                 </label>
                 <label class="compression-toggle">
                     <input type="checkbox" id="enableResize" checked>
@@ -654,24 +946,34 @@
 
     <main class="main">
         <header class="header">
-            <div style="font-weight: 500; display: flex; align-items: center;">
+            <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <div class="header-title">
                 Kimi Chat
                 <span class="provider-badge" id="providerBadge">Cloudflare</span>
             </div>
-            <button class="icon-btn" onclick="startNewChat()" title="Clear chat">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-            </button>
+            <div class="header-actions">
+                <button class="icon-btn" onclick="startNewChat()" title="Clear chat">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </button>
+            </div>
         </header>
 
         <div class="chat-container" id="chatContainer">
+            <div class="pull-indicator" id="pullIndicator">Pull to refresh</div>
             <div class="welcome-screen">
                 <h1 class="welcome-title">How can I help you today?</h1>
-                <p style="color: var(--text-secondary); margin-top: 8px;">
+                <p class="welcome-subtitle">
                     Chat with images • Video analysis • URL fetching<br>
-                    <small>Multi-provider support with free tier options</small>
+                    <small>Optimized for mobile • Free tier available</small>
                 </p>
             </div>
         </div>
@@ -681,29 +983,29 @@
                 <div class="attachments-preview hidden" id="attachmentsPreview"></div>
                 <div id="fetchedContent" class="fetched-content hidden">
                     <h4>📄 Fetched Content</h4>
-                    <div id="fetchedText" style="max-height: 100px; overflow-y: auto; color: var(--text-secondary);"></div>
+                    <div id="fetchedText" style="max-height: 80px; overflow-y: auto; color: var(--text-secondary);"></div>
                 </div>
-                <textarea class="message-input" id="messageInput" placeholder="Message Kimi... (paste URL to fetch)" rows="1"></textarea>
+                <textarea class="message-input" id="messageInput" placeholder="Message Kimi..." rows="1" inputmode="text"></textarea>
                 <div class="input-footer">
                     <div class="input-actions">
-                        <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" multiple onchange="handleFileSelect(event)">
-                        <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Upload image/video">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <input type="file" id="fileInput" class="hidden" accept="image/*,video/*" multiple onchange="handleFileSelect(event)" capture="environment">
+                        <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Upload or take photo">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                                 <circle cx="8.5" cy="8.5" r="1.5"></circle>
                                 <polyline points="21 15 16 10 5 21"></polyline>
                             </svg>
                         </button>
-                        <button class="url-fetch-btn" onclick="fetchUrlFromInput()" title="Fetch URL content">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <button class="url-fetch-btn" onclick="fetchUrlFromInput()" title="Fetch URL">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
                                 <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                             </svg>
-                            Fetch URL
+                            <span>Fetch</span>
                         </button>
                     </div>
                     <button class="send-btn" id="sendBtn" onclick="sendMessage()">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="22" y1="2" x2="11" y2="13"></line>
                             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                         </svg>
@@ -721,35 +1023,35 @@
                 endpoint: 'https://kimi-proxy.adam-k-smith13.workers.dev',
                 requiresKey: false,
                 defaultModel: 'kimi-k2.5',
-                info: 'Uses your Cloudflare Worker. No API key needed in browser.'
+                info: 'Uses your Cloudflare Worker. No API key needed.'
             },
             nvidia: {
-                name: 'NVIDIA NIM',
+                name: 'NVIDIA',
                 endpoint: 'https://integrate.api.nvidia.com/v1/chat/completions',
                 requiresKey: true,
                 defaultModel: 'moonshotai/kimi-k2.5',
-                info: 'Get free API key at build.nvidia.com → Kimi K2.5 → View Code. No credit card required.'
+                info: 'Get free key at build.nvidia.com → Kimi K2.5 → View Code'
             },
             openrouter: {
                 name: 'OpenRouter',
                 endpoint: 'https://openrouter.ai/api/v1/chat/completions',
                 requiresKey: true,
                 defaultModel: 'moonshotai/kimi-k2.5',
-                info: 'Get key at openrouter.ai. Free tier available with rate limits.'
+                info: 'Get key at openrouter.ai. Free tier available.'
             },
             routway: {
-                name: 'Routway.ai',
+                name: 'Routway',
                 endpoint: 'https://routway.ai/api/v1/chat/completions',
                 requiresKey: true,
                 defaultModel: 'kimi-k2-0905',
-                info: 'Completely free at routway.ai. Create API key in dashboard.'
+                info: 'Free at routway.ai. Create API key in dashboard.'
             },
             direct: {
-                name: 'Moonshot Direct',
-                endpoint: 'https://api.moonshot.cn/v1/chat/completions',
+                name: 'Moonshot',
+                endpoint: 'https://api.moonshot.ai/v1/chat/completions',
                 requiresKey: true,
                 defaultModel: 'kimi-k2.5',
-                info: 'Official API. Requires paid account at platform.moonshot.ai'
+                info: 'Official API at platform.moonshot.ai'
             }
         };
 
@@ -761,6 +1063,24 @@
         let currentAttachments = [];
         let chats = JSON.parse(localStorage.getItem('kimi_chats') || '[]');
         let partialResponse = null;
+        let touchStartY = 0;
+
+        // Mobile sidebar toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const isOpen = sidebar.classList.contains('open');
+            
+            if (isOpen) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('open');
+                document.body.style.overflow = '';
+            } else {
+                sidebar.classList.add('open');
+                overlay.classList.add('open');
+                document.body.style.overflow = 'hidden';
+            }
+        }
 
         // Load saved settings
         const savedProvider = localStorage.getItem('kimi_provider');
@@ -780,20 +1100,20 @@
             currentProvider = document.getElementById('providerSelect').value;
             const provider = PROVIDERS[currentProvider];
             
-            // Update UI
             document.getElementById('providerBadge').textContent = provider.name;
             document.getElementById('providerInfo').textContent = provider.info;
             
-            // Show/hide API key input
+            const keyGroup = document.getElementById('apiKeyGroup');
             const keyInput = document.getElementById('apiKey');
+            
             if (provider.requiresKey) {
-                keyInput.style.display = 'block';
-                keyInput.placeholder = `Enter ${provider.name} API key`;
+                keyGroup.style.display = 'block';
+                keyInput.placeholder = `${provider.name} API key`;
             } else {
-                keyInput.style.display = 'none';
+                keyGroup.style.display = 'none';
             }
             
-            // Update model options
+            // Update models
             const modelSelect = document.getElementById('modelSelect');
             if (currentProvider === 'nvidia') {
                 modelSelect.innerHTML = `
@@ -801,9 +1121,7 @@
                     <option value="moonshotai/kimi-k2-instruct">moonshotai/kimi-k2-instruct</option>
                 `;
             } else if (currentProvider === 'routway') {
-                modelSelect.innerHTML = `
-                    <option value="kimi-k2-0905">kimi-k2-0905</option>
-                `;
+                modelSelect.innerHTML = `<option value="kimi-k2-0905">kimi-k2-0905</option>`;
             } else {
                 modelSelect.innerHTML = `
                     <option value="kimi-k2.5">kimi-k2.5</option>
@@ -820,11 +1138,11 @@
             document.getElementById('modeInstant').classList.toggle('active', mode === 'instant');
         }
 
-        // Auto-resize textarea
+        // Mobile-optimized textarea
         const textarea = document.getElementById('messageInput');
         textarea.addEventListener('input', function() {
             this.style.height = 'auto';
-            this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
         });
 
         textarea.addEventListener('keydown', function(e) {
@@ -834,43 +1152,76 @@
             }
         });
 
+        // iOS keyboard handling
+        textarea.addEventListener('focus', () => {
+            setTimeout(() => {
+                textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 300);
+        });
+
+        // Pull to refresh (mobile)
+        const chatContainer = document.getElementById('chatContainer');
+        const pullIndicator = document.getElementById('pullIndicator');
+        
+        chatContainer.addEventListener('touchstart', (e) => {
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
+
+        chatContainer.addEventListener('touchmove', (e) => {
+            const touchY = e.touches[0].clientY;
+            const diff = touchY - touchStartY;
+            
+            if (chatContainer.scrollTop === 0 && diff > 0) {
+                pullIndicator.classList.add('visible');
+                if (diff > 100) {
+                    pullIndicator.textContent = 'Release to refresh';
+                }
+            }
+        }, { passive: true });
+
+        chatContainer.addEventListener('touchend', (e) => {
+            const touchY = e.changedTouches[0].clientY;
+            const diff = touchY - touchStartY;
+            
+            if (chatContainer.scrollTop === 0 && diff > 100) {
+                location.reload();
+            }
+            pullIndicator.classList.remove('visible');
+        });
+
         // URL Fetching
         async function fetchUrlFromInput() {
             const text = document.getElementById('messageInput').value;
             const urlMatch = text.match(/(https?:\/\/[^\s]+)/);
             
             if (!urlMatch) {
-                alert('No URL found in message. Paste a URL first.');
+                alert('No URL found. Paste a URL first.');
                 return;
             }
 
             const url = urlMatch[0];
             const btn = document.querySelector('.url-fetch-btn');
             btn.style.opacity = '0.5';
-            btn.innerHTML = 'Fetching...';
+            btn.innerHTML = '...';
 
             try {
-                // Use allorigins as CORS proxy
                 const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-                
                 const response = await fetch(proxyUrl);
-                if (!response.ok) throw new Error('Failed to fetch');
+                if (!response.ok) throw new Error('Failed');
                 
                 const html = await response.text();
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 
-                // Clean up
                 doc.querySelectorAll('script, style, nav, footer, header, iframe').forEach(el => el.remove());
                 
                 const mainContent = doc.querySelector('main, article, [role="main"]') || doc.body;
                 let textContent = mainContent.innerText || mainContent.textContent;
                 textContent = textContent.replace(/\s+/g, ' ').trim();
                 
-                // Limit length
-                const maxLength = 8000;
+                const maxLength = 6000; // Reduced for mobile
                 if (textContent.length > maxLength) {
-                    textContent = textContent.substring(0, maxLength) + '... [truncated]';
+                    textContent = textContent.substring(0, maxLength) + '...';
                 }
 
                 fetchedUrlContent = {
@@ -882,21 +1233,22 @@
                 const fetchedDiv = document.getElementById('fetchedContent');
                 const fetchedText = document.getElementById('fetchedText');
                 fetchedDiv.classList.remove('hidden');
-                fetchedText.textContent = `${fetchedUrlContent.title}\n\n${textContent.substring(0, 200)}...`;
+                fetchedText.textContent = `${fetchedUrlContent.title}\n\n${textContent.substring(0, 150)}...`;
                 
-                btn.innerHTML = 'Fetched ✓';
-                btn.style.color = 'var(--accent)';
+                btn.innerHTML = '✓';
+                setTimeout(() => {
+                    btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg><span>Fetch</span>';
+                }, 2000);
                 
             } catch (error) {
-                console.error('Fetch error:', error);
-                alert('Failed to fetch URL. Try again or check the URL.');
-                btn.innerHTML = 'Fetch URL';
+                alert('Failed to fetch URL');
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg><span>Fetch</span>';
             } finally {
                 btn.style.opacity = '1';
             }
         }
 
-        // Image/Video handling
+        // Image handling (mobile-optimized)
         async function compressImage(file) {
             const enableCompression = document.getElementById('enableCompression').checked;
             const enableResize = document.getElementById('enableResize').checked;
@@ -913,7 +1265,7 @@
                     URL.revokeObjectURL(url);
                    
                     let { width, height } = img;
-                    const maxSize = 2048;
+                    const maxSize = 1536; // Reduced for mobile
                    
                     if (enableResize && (width > maxSize || height > maxSize)) {
                         if (width > height) {
@@ -931,10 +1283,10 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                    
-                    let quality = 0.9;
+                    let quality = 0.85;
                     if (enableCompression) {
-                        if (file.size > 5 * 1024 * 1024) quality = 0.7;
-                        else if (file.size > 2 * 1024 * 1024) quality = 0.8;
+                        if (file.size > 3 * 1024 * 1024) quality = 0.6;
+                        else if (file.size > 1 * 1024 * 1024) quality = 0.75;
                     }
                    
                     const mimeType = file.type === 'image/png' && enableCompression ? 'image/jpeg' : file.type;
@@ -970,6 +1322,12 @@
                         displayType: 'image'
                     });
                 } else if (file.type.startsWith('video/')) {
+                    // Limit video processing on mobile
+                    if (file.size > 50 * 1024 * 1024) {
+                        alert('Video too large for mobile. Max 50MB.');
+                        continue;
+                    }
+                    
                     const videoId = generateId();
                     currentAttachments.push({
                         type: 'video',
@@ -981,7 +1339,9 @@
                         frames: [],
                         processing: true
                     });
-                    processVideoFrames(file, videoId);
+                    
+                    // Process with timeout for mobile
+                    setTimeout(() => processVideoFrames(file, videoId), 100);
                 }
             }
            
@@ -999,7 +1359,7 @@
                 attachment.processing = false;
                 updateAttachmentsPreview();
             } catch (error) {
-                console.error('Video processing error:', error);
+                console.error('Video error:', error);
                 attachment.processing = false;
                 attachment.error = true;
                 updateAttachmentsPreview();
@@ -1016,22 +1376,22 @@
                 video.src = URL.createObjectURL(file);
                 video.muted = true;
                 video.playsInline = true;
+                video.preload = 'metadata';
                
                 video.onloadedmetadata = () => {
                     const duration = video.duration;
+                    // Fewer frames on mobile
                     const frameTimes = [
-                        0, 
-                        duration * 0.25, 
-                        duration * 0.5, 
-                        duration * 0.75, 
-                        Math.min(duration * 0.95, duration - 0.1)
+                        duration * 0.1,
+                        duration * 0.5,
+                        duration * 0.9
                     ].filter(t => t >= 0 && t <= duration);
                     
                     let currentFrame = 0;
                    
                     video.onseeked = async () => {
                         let { videoWidth, videoHeight } = video;
-                        const maxSize = 1024;
+                        const maxSize = 768; // Smaller for mobile
                        
                         if (videoWidth > maxSize || videoHeight > maxSize) {
                             if (videoWidth > videoHeight) {
@@ -1047,7 +1407,7 @@
                         canvas.height = videoHeight;
                         ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
                        
-                        const base64 = canvas.toDataURL('image/jpeg', 0.85);
+                        const base64 = canvas.toDataURL('image/jpeg', 0.8);
                         frames.push({
                             type: 'image',
                             mimeType: 'image/jpeg',
@@ -1070,6 +1430,14 @@
                     URL.revokeObjectURL(video.src);
                     resolve(frames);
                 };
+                
+                // Timeout for mobile
+                setTimeout(() => {
+                    if (frames.length === 0) {
+                        URL.revokeObjectURL(video.src);
+                        resolve(frames);
+                    }
+                }, 30000);
             });
         }
 
@@ -1085,18 +1453,18 @@
             container.innerHTML = currentAttachments.map((att, index) => {
                 if (att.displayType === 'video') {
                     return `
-                        <div class="attachment-item video" style="position: relative;">
+                        <div class="attachment-item video">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
                             </svg>
-                            <div style="font-size: 10px; color: var(--text-secondary); text-align: center; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">
-                                ${att.name}
+                            <div style="font-size: 9px; color: var(--text-secondary); text-align: center; padding: 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">
+                                ${att.name.substring(0, 10)}...
                             </div>
                             ${att.processing ? 
-                                '<div class="video-processing">Processing...</div>' : 
+                                '<div class="video-processing">...</div>' : 
                                 att.error ? 
-                                '<div class="video-processing" style="color: var(--error);">Error</div>' :
-                                `<div class="video-processing" style="color: var(--accent);">${att.frames.length} frames</div>`
+                                '<div class="video-processing" style="color: var(--error);">!</div>' :
+                                `<div class="video-processing">${att.frames.length}f</div>`
                             }
                             <button class="attachment-remove" onclick="removeAttachment(${index})">×</button>
                         </div>
@@ -1133,16 +1501,22 @@
             updateAttachmentsPreview();
             document.getElementById('fetchedContent').classList.add('hidden');
             document.getElementById('messageInput').value = '';
+            document.getElementById('messageInput').style.height = 'auto';
             document.getElementById('chatContainer').innerHTML = `
                 <div class="welcome-screen">
                     <h1 class="welcome-title">How can I help you today?</h1>
-                    <p style="color: var(--text-secondary); margin-top: 8px;">
+                    <p class="welcome-subtitle">
                         Chat with images • Video analysis • URL fetching<br>
-                        <small>Multi-provider support with free tier options</small>
+                        <small>Optimized for mobile • Free tier available</small>
                     </p>
                 </div>
             `;
             renderChatHistory();
+            
+            // Close sidebar on mobile
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
         }
 
         function renderChatHistory() {
@@ -1152,7 +1526,7 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                     </svg>
-                    ${chat.title || 'New Chat'}
+                    <span style="overflow: hidden; text-overflow: ellipsis;">${chat.title || 'New Chat'}</span>
                 </div>
             `).join('');
         }
@@ -1173,6 +1547,11 @@
             container.innerHTML = '';
            
             chat.messages.forEach(msg => displayMessage(msg));
+            
+            // Close sidebar on mobile
+            if (window.innerWidth < 768) {
+                toggleSidebar();
+            }
         }
 
         function displayMessage(msg, isPartial = false) {
@@ -1197,14 +1576,15 @@
                                 <img src="data:${img.mimeType};base64,${img.data}"
                                      class="message-image"
                                      alt="${img.name}"
-                                     onclick="openLightbox('${img.data}', '${img.mimeType}')">
+                                     onclick="openLightbox('${img.data}', '${img.mimeType}')"
+                                     loading="lazy">
                             `).join('')}
                         </div>
                     ` : ''}
                     <div>${formatText(msg.content)}</div>
                     ${isPartial ? `
                         <div class="token-warning">
-                            <span>⚠️ Response truncated</span>
+                            <span>⚠️ Truncated</span>
                             <button class="continue-btn" onclick="continueResponse()">Continue</button>
                         </div>
                     ` : ''}
@@ -1218,8 +1598,10 @@
         function openLightbox(base64, mimeType) {
             const lightbox = document.createElement('div');
             lightbox.className = 'image-lightbox';
-            lightbox.innerHTML = `<img src="data:${mimeType};base64,${base64}" alt="Full size">`;
-            lightbox.onclick = () => lightbox.remove();
+            lightbox.innerHTML = `<img src="data:${mimeType};base64,${base64}" alt="Full size" onclick="this.parentElement.remove()">`;
+            lightbox.onclick = (e) => {
+                if (e.target === lightbox) lightbox.remove();
+            };
             document.body.appendChild(lightbox);
         }
 
@@ -1253,16 +1635,14 @@
             const apiKey = document.getElementById('apiKey').value;
             const text = isContinuation ? 'Continue from where you left off.' : input.value.trim();
 
-            // Check processing videos
             const processingVideos = currentAttachments.filter(att => att.type === 'video' && att.processing);
             if (processingVideos.length > 0) {
-                alert('Please wait for video processing to complete...');
+                alert('Wait for video processing...');
                 return;
             }
 
             if ((!text && currentAttachments.length === 0 && !fetchedUrlContent) || isGenerating) return;
 
-            // Save settings
             localStorage.setItem('kimi_model', model);
             if (document.getElementById('saveKey').checked && apiKey) {
                 localStorage.setItem('kimi_api_key', apiKey);
@@ -1272,7 +1652,7 @@
                 currentChatId = generateId();
                 chats.push({
                     id: currentChatId,
-                    title: text.slice(0, 30) || 'Web Content',
+                    title: text.slice(0, 30) || 'Chat',
                     messages: [],
                     createdAt: new Date().toISOString()
                 });
@@ -1280,13 +1660,11 @@
 
             const chat = chats.find(c => c.id === currentChatId);
            
-            // Build message content
             let messageContent = text;
             if (fetchedUrlContent && !isContinuation) {
-                messageContent += `\n\n[Content from ${fetchedUrlContent.url}]:\n${fetchedUrlContent.content}`;
+                messageContent += `\n\n[From ${fetchedUrlContent.url}]:\n${fetchedUrlContent.content}`;
             }
 
-            // Prepare images
             const allImages = [];
             currentAttachments.forEach(att => {
                 if (att.type === 'image') {
@@ -1365,7 +1743,6 @@
                 const provider = PROVIDERS[currentProvider];
                 const highTokens = document.getElementById('highTokens').checked;
                 
-                // Build request body
                 const requestBody = {
                     model: model,
                     messages: apiMessages,
@@ -1374,12 +1751,10 @@
                     top_p: 0.95
                 };
 
-                // Add thinking mode control for compatible providers
                 if (currentMode === 'instant' && currentProvider !== 'cloudflare') {
                     requestBody.extra_body = { thinking: { type: 'disabled' } };
                 }
 
-                // Build headers
                 const headers = {
                     'Content-Type': 'application/json'
                 };
@@ -1388,40 +1763,38 @@
                     headers['Authorization'] = `Bearer ${apiKey}`;
                 }
                 
-                // OpenRouter specific headers
                 if (currentProvider === 'openrouter') {
                     headers['HTTP-Referer'] = window.location.href;
-                    headers['X-Title'] = 'Kimi Chat';
+                    headers['X-Title'] = 'Kimi Chat Mobile';
                 }
 
-                console.log('Sending to:', provider.endpoint, 'Max tokens:', requestBody.max_tokens);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for mobile
 
                 const response = await fetch(provider.endpoint, {
                     method: 'POST',
                     headers: headers,
-                    body: JSON.stringify(requestBody)
+                    body: JSON.stringify(requestBody),
+                    signal: controller.signal
                 });
 
+                clearTimeout(timeoutId);
                 thinkingDiv.remove();
 
                 if (!response.ok) {
                     const errorText = await response.text();
-                    console.error('Error response:', errorText);
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                    throw new Error(`HTTP ${response.status}`);
                 }
 
                 const data = await response.json();
                 const aiContent = data.choices[0].message.content;
                 const finishReason = data.choices[0].finish_reason;
-                
-                console.log('Finish reason:', finishReason, 'Length:', aiContent.length);
 
                 const aiMsg = {
                     role: 'assistant',
                     content: aiContent
                 };
 
-                // Check for truncation
                 const wasTruncated = finishReason === 'length' || 
                                     (aiContent.length > 100 && aiContent.slice(-3).includes('...'));
 
@@ -1438,7 +1811,7 @@
                 saveChats();
 
             } catch (error) {
-                console.error('Full error:', error);
+                console.error('Error:', error);
                 thinkingDiv.remove();
                 displayMessage({ role: 'assistant', content: `Error: ${error.message}` });
             } finally {
@@ -1446,6 +1819,31 @@
                 document.getElementById('sendBtn').disabled = false;
             }
         }
+
+        // Handle visibility change (save state when switching apps)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                saveChats();
+            }
+        });
+
+        // Handle online/offline
+        window.addEventListener('online', () => {
+            console.log('Back online');
+        });
+        window.addEventListener('offline', () => {
+            alert('You are offline. Check your connection.');
+        });
+
+        // Prevent zoom on double tap
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', (e) => {
+            const now = Date.now();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, { passive: false });
 
         renderChatHistory();
     </script>
